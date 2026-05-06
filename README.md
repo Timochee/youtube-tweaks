@@ -1,8 +1,8 @@
-# YouTube Cleaner
+# YouTube Tweaks
 
-A tiny Chrome extension to tweak YouTube. Five independent toggles — four
-cleanup filters and one action — no account, no telemetry, no settings
-beyond the popup.
+A tiny Chrome extension that tweaks YouTube to your taste. Five
+independent toggles — four cleanup filters and one action — no account,
+no telemetry, no settings beyond the popup.
 
 ## What it hides
 
@@ -24,27 +24,35 @@ popup. Settings sync across Chrome installs via `chrome.storage.sync`.
 
 ## How it works
 
-For Shorts and live streams, the extension injects a single CSS stylesheet
-that targets YouTube's component classes (`overlay-style="SHORTS"`, the new
-`badge-shape-wiz--thumbnail-live` for live, etc.). Toggling a filter just
-adds or removes a class on `<html>` — no DOM walking, no per-item JavaScript.
+Each toggle lives in its own content script under `content/`. They run
+independently — there's no shared module, no central state, no
+coordination. Each script reads only its own keys from
+`chrome.storage.sync`, owns its own DOM side-effects, and cleans up when
+toggled off. Adding a feature is one new file plus one row in the popup.
 
-Past live replays and the "Most relevant" shelf are different: YouTube
-exposes no DOM attribute that distinguishes them from neighbouring items.
-The only available signals are the metadata text `Streamed X ago` for
-replays, and the section header text `Most relevant` for the shelf. A
-single `MutationObserver` scans new feed items / sections as they're
-inserted and adds a marker class to matches. The observer is started only
-while at least one of those two toggles is on.
+For Shorts and live streams (`content/hide-shorts.js`,
+`content/hide-live-streams.js`), each script injects its own CSS
+stylesheet that targets YouTube's component classes
+(`overlay-style="SHORTS"`, the new `badge-shape-wiz--thumbnail-live` for
+live, etc.). Toggling a filter just adds or removes a class on `<html>`
+— no DOM walking, no per-item JS.
 
-Auto-like is the one feature that *acts* rather than hides. It runs a 1-Hz
-interval on `/watch` pages, accumulates only seconds where the `<video>`
-element is actually playing (so seeks and pauses don't count), and at the
-`AUTOLIKE_THRESHOLD_S` mark (2 seconds by default) reads the Subscribe
-button state and the Like/Dislike button states from the DOM. If the
-channel is subscribed and the user hasn't already liked or disliked, it
-clicks Like exactly once per video. No API call is made — every signal
-comes from on-page DOM.
+Past live replays (`content/hide-live-replays.js`) and the "Most relevant"
+shelf (`content/hide-most-relevant-shelf.js`) are different: YouTube
+exposes no DOM attribute that distinguishes them. The only signals are
+the metadata text `Streamed X ago` for replays and the section header
+text `Most relevant` for the shelf. Each script owns its own
+`MutationObserver` (started only while its toggle is on) that scans
+newly-inserted items/sections and adds a marker class to matches.
+
+Auto-like (`content/auto-like.js`) is the one feature that *acts* rather
+than hides. It runs a 1-Hz interval on `/watch` pages, accumulates only
+seconds where the `<video>` element is actually playing (so seeks and
+pauses don't count), and at the `AUTOLIKE_THRESHOLD_S` mark (2 seconds by
+default) reads the Subscribe button state and the Like/Dislike button
+states from the DOM. If the channel is subscribed and the user hasn't
+already liked or disliked, it clicks Like exactly once per video. No API
+call — every signal comes from on-page DOM.
 
 The Shorts and Live filters mostly target DOM attributes (`overlay-style`,
 `badge-shape-wiz--thumbnail-live`, etc.) and `/shorts` URLs, with the
@@ -53,8 +61,9 @@ extra fallbacks so the filters still work on the renderer variants where
 URL-based matching falls short. The replay and "Most relevant" filters
 are English-only: they match the metadata prefix `Streamed ` and the
 section title `Most relevant` respectively. If your interface is in
-another language, edit `REPLAY_PREFIX` and `RELEVANT_LABELS` in
-`content.js` (e.g. `Diffusé en direct ` for French replays).
+another language, edit `REPLAY_PREFIX` in `content/hide-live-replays.js`
+and `RELEVANT_LABELS` in `content/hide-most-relevant-shelf.js` (e.g.
+`Diffusé en direct ` for French replays).
 
 ## Installing the unpacked extension
 
@@ -72,8 +81,13 @@ loaded. If you move or delete the folder, the extension breaks.
 ```
 youtube-cleaner/
 ├── manifest.json        Manifest V3
-├── content.js           Filter logic injected into youtube.com pages
-├── popup.html           Three-toggle popup UI
+├── content/                          One content script per toggle (loaded independently)
+│   ├── hide-shorts.js                CSS-only — hides Shorts everywhere
+│   ├── hide-live-streams.js          CSS-only — hides live streams (Subs/Home)
+│   ├── hide-live-replays.js          MutationObserver — hides "Streamed X ago" items
+│   ├── hide-most-relevant-shelf.js   MutationObserver — hides the "Most relevant" shelf
+│   └── auto-like.js                  Interval — auto-likes subscribed-channel videos
+├── popup.html           Toggle UI; toggles auto-discovered via data-setting
 ├── popup.css            Popup styling (light/dark via prefers-color-scheme)
 ├── popup.js             Reads/writes settings to chrome.storage.sync
 ├── icons/
@@ -86,14 +100,22 @@ youtube-cleaner/
 
 ## Updating after YouTube redesigns
 
-YouTube changes its DOM regularly. If a filter stops working:
+YouTube changes its DOM regularly. If a filter stops working, edit the
+corresponding `content/<feature>.js`:
 
-- **Shorts / Live**: open DevTools on a video item that should be hidden,
-  inspect the thumbnail badge, find the new attribute or class, and add a
-  selector to the relevant rule in `content.js`.
-- **Replays**: find a replay item whose metadata you can see (something
-  like *"Streamed 2 hours ago"*), check whether the prefix has changed, and
-  update `REPLAY_PREFIX`.
+- **Shorts / Live** (`content/hide-shorts.js`,
+  `content/hide-live-streams.js`): open DevTools on an item that should
+  be hidden, inspect the thumbnail badge, find the new attribute or
+  class, and add a selector to the file's `STYLES`.
+- **Replays** (`content/hide-live-replays.js`): find a replay item whose
+  metadata you can see (something like *"Streamed 2 hours ago"*), check
+  whether the prefix has changed, and update `REPLAY_PREFIX`.
+- **"Most relevant"** (`content/hide-most-relevant-shelf.js`): inspect
+  the section header, check that the label still reads `Most relevant`,
+  and adjust `RELEVANT_LABELS` if needed.
+- **Auto-like** (`content/auto-like.js`): if no like fires, inspect the
+  Like / Dislike / Subscribe buttons on a `/watch` page and update the
+  selectors in `findLikeButton`, `findDislikeButton`, `isSubscribedHere`.
 
 The selectors in this extension were cross-checked against an actively-
 maintained uBlock filter list as of early 2026, but the moment YouTube
