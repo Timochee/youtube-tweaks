@@ -1,0 +1,19 @@
+# macOS
+.DS_Store
+
+# Editors / IDEs
+.vscode/
+.idea/
+*.swp
+*~
+
+# Python (used only by scripts/make_icons.py)
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Build artifacts
+*.zip
+*.crx
+*.pem

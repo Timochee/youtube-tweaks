@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+    <header>
+        <img src="icons/icon48.png" alt="" width="20" height="20">
+        <h1>YouTube Cleaner</h1>
+    </header>
+
+    <main>
+        <label class="row">
+            <div class="text">
+                <strong>Hide Shorts</strong>
+                <small>All pages</small>
+            </div>
+            <input type="checkbox" data-setting="hideShorts" class="switch">
+        </label>
+
+        <label class="row">
+            <div class="text">
+                <strong>Hide live streams</strong>
+                <small>Subscriptions &amp; Home</small>
+            </div>
+            <input type="checkbox" data-setting="hideLive" class="switch">
+        </label>
+
+        <label class="row">
+            <div class="text">
+                <strong>Hide live replays</strong>
+                <small>Subscriptions only</small>
+            </div>
+            <input type="checkbox" data-setting="hideReplays" class="switch">
+        </label>
+    </main>
+
+    <script src="popup.js"></script>
+</body>
+</html>
