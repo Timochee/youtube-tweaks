@@ -1,7 +1,8 @@
 # YouTube Cleaner
 
-A tiny Chrome extension to declutter YouTube. Four independent toggles, no
-account, no telemetry, no settings beyond the popup.
+A tiny Chrome extension to tweak YouTube. Five independent toggles — four
+cleanup filters and one action — no account, no telemetry, no settings
+beyond the popup.
 
 ## What it hides
 
@@ -11,6 +12,12 @@ account, no telemetry, no settings beyond the popup.
 | **Live streams** | Subscriptions and Home feeds (currently-live items only) |
 | **Live replays** | Subscriptions feed (videos labelled *"Streamed X ago"*) |
 | **"Most relevant" shelf** | Subscriptions feed (the algorithmic shelf at the top) |
+
+## What it does
+
+| Action | Where it applies |
+|---|---|
+| **Auto-like** | `/watch` pages, only on channels you're subscribed to, after 2 seconds of actual play time. Skips videos you've already liked or disliked. |
 
 Each filter is off by default — toggle the ones you want from the extension
 popup. Settings sync across Chrome installs via `chrome.storage.sync`.
@@ -29,6 +36,15 @@ replays, and the section header text `Most relevant` for the shelf. A
 single `MutationObserver` scans new feed items / sections as they're
 inserted and adds a marker class to matches. The observer is started only
 while at least one of those two toggles is on.
+
+Auto-like is the one feature that *acts* rather than hides. It runs a 1-Hz
+interval on `/watch` pages, accumulates only seconds where the `<video>`
+element is actually playing (so seeks and pauses don't count), and at the
+`AUTOLIKE_THRESHOLD_S` mark (2 seconds by default) reads the Subscribe
+button state and the Like/Dislike button states from the DOM. If the
+channel is subscribed and the user hasn't already liked or disliked, it
+clicks Like exactly once per video. No API call is made — every signal
+comes from on-page DOM.
 
 The Shorts and Live filters mostly target DOM attributes (`overlay-style`,
 `badge-shape-wiz--thumbnail-live`, etc.) and `/shorts` URLs, with the

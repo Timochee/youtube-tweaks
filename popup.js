@@ -12,6 +12,7 @@ const DEFAULTS = {
     hideLive: false,
     hideReplays: false,
     hideRelevant: false,
+    autoLike: false,
 };
 
 async function init() {

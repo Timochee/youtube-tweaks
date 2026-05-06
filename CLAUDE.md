@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-A Manifest V3 Chrome extension that hides four categories of YouTube clutter (Shorts / live streams / past live replays / the "Most relevant" Subscriptions shelf) via four independent toggles in a popup. There is **no build system, no package manager, no test suite, and no lint config** — every file is shipped as-is to Chrome.
+A Manifest V3 Chrome extension with five independent toggles in a popup: four hide YouTube clutter (Shorts / live streams / past live replays / the "Most relevant" Subscriptions shelf), one **acts** on the user's account (auto-like videos from subscribed channels after `AUTOLIKE_THRESHOLD_S` seconds of actual play time — currently 2). There is **no build system, no package manager, no test suite, and no lint config** — every file is shipped as-is to Chrome.
 
 ## Working on the extension
 
@@ -23,6 +23,8 @@ Inside `content.js`, the three filters use **two different mechanisms** dependin
 
 2. **Past live replays + "Most relevant" shelf — shared `MutationObserver`.** Neither has a DOM attribute that distinguishes them; both are identified by header/metadata text (English-only — `REPLAY_PREFIX` and `RELEVANT_LABELS` in `content.js`). They share **one** observer to avoid double-watching the document. Each filter has its own `pending*` set, predicate (`isReplayItem`, `isRelevantSection`), and marker class (`ytc-hide-replay-item` on `ytd-rich-item-renderer`, `ytc-hide-relevant-section` on `ytd-rich-section-renderer`). The observer runs while at least one of the two toggles is on; turning a toggle off removes that filter's markers so the page reflects the new state without reload. Processing is **incremental**: `collectFromMutations` translates `MutationRecord`s into the pending sets (added subtrees + the closest matching ancestor of any `characterData` target — text fills in lazily after node insertion), drained on a `requestAnimationFrame` tick. A **full sweep** runs at toggle-on and on `yt-navigate-finish` (SPA navigation), where there's no mutation record to lean on.
 
+3. **Auto-like — 1-Hz polling interval on `/watch`.** The only feature that *performs an action* rather than hides DOM. While the toggle is on, an interval ticks once per second; each tick increments a `watchedSeconds` counter only when the `<video>` element is actually playing (so seeks and pauses don't count). The interval also detects SPA navigation between videos by comparing the URL's `v=` param against `lastTickVideoId` and resets the counter on change. At the `AUTOLIKE_THRESHOLD_S` threshold (2 seconds by default) it reads three pieces of DOM state: subscribe-button state (`ytd-subscribe-button-renderer[subscribed]` or `aria-pressed="true"`), like-button state, and dislike-button state. It clicks Like at most once per video (`actedOnVideoId` guard), and respects an explicit dislike by skipping. No API call — everything is on-page DOM. Selectors are the most likely to break on YouTube redesigns; `findLikeButton` / `findDislikeButton` / `isSubscribedHere` are the surgery points.
+
 When a filter stops working after a YouTube redesign, the fix path differs by mechanism: for Shorts/Live, find the new attribute or class on a thumbnail badge and add a selector to `STYLES`; for replays, check whether the `"Streamed "` metadata prefix has changed.
 
 ## Constraints worth remembering
@@ -34,6 +36,10 @@ When a filter stops working after a YouTube redesign, the fix path differs by me
 - **Storage API choice is intentional.** `chrome.storage.sync` (not `local`) so settings follow the user's Chrome profile across machines; the ~100 KB quota is plenty for three booleans. Never use `localStorage` here — it's not available from a service worker context (none today, but keep the door open) and isn't synced.
 - `STORAGE_DEFAULTS` is duplicated in `content.js` and `popup.js` (as `DEFAULTS`). Keep them in sync when adding a new toggle.
 - `REPLAY_PREFIX` assumes English YouTube. Non-English users currently need to edit the source — this is documented in the README as an accepted limitation.
+
+## After a validated change
+
+Once the user validates a change (a feature lands, a refactor is approved, a fix is confirmed working), update **both** this file and `README.md` to describe the new steady state — not a stale picture. The parts that drift fastest: the toggle list / count, the architecture summary, and the English-only constants (`REPLAY_PREFIX`, `RELEVANT_LABELS`). There is no docs CI, so keeping these in sync with the code is part of "done."
 
 ## Out of scope (intentionally)
 

@@ -2,13 +2,18 @@
 // YouTube Cleaner — content script
 // ============================================================================
 //
-// Runs on every page of www.youtube.com at document_start. Four filters,
-// individually toggleable from the popup:
+// Runs on every page of www.youtube.com at document_start. Five toggles,
+// individually controllable from the popup. Four cleanup filters and one
+// action:
 //
 //   - hideShorts    : hide Shorts items, shelves, and sidebar entries everywhere
 //   - hideLive      : hide currently-live streams on Subscriptions and Home
 //   - hideReplays   : hide past live streams ("Streamed X ago") on Subscriptions
 //   - hideRelevant  : hide the "Most relevant" shelf at the top of Subscriptions
+//   - autoLike      : on /watch pages, auto-click Like after AUTOLIKE_THRESHOLD_S
+//                     seconds of actual play time, but only when the channel
+//                     is one the user is subscribed to. Skips if already
+//                     liked or disliked.
 //
 // Architecture
 // ------------
@@ -37,6 +42,7 @@
         hideLive: false,
         hideReplays: false,
         hideRelevant: false,
+        autoLike: false,
     };
 
     // ------------------------------------------------------------------------
@@ -287,6 +293,110 @@
     }
 
     // ------------------------------------------------------------------------
+    // Auto-like (Watch page only, subscribed channels only)
+    //
+    // Polls once per second while the toggle is on. The interval increments
+    // a per-video "actual playing time" counter only when the <video> is not
+    // paused, so seeks and pauses don't count. After AUTOLIKE_THRESHOLD_S of
+    // accumulated play time, if the user is subscribed to the current
+    // channel and hasn't already liked/disliked, click the Like button once.
+    // ------------------------------------------------------------------------
+
+    const AUTOLIKE_THRESHOLD_S = 2;
+    const VIDEO_SELECTOR = 'ytd-watch-flexy video, video.html5-main-video';
+    const SUBSCRIBE_RENDERERS = [
+        'ytd-watch-flexy ytd-subscribe-button-renderer',
+        'ytd-watch-flexy yt-subscribe-button-view-model',
+    ].join(', ');
+
+    let autoLikeInterval = null;
+    let watchedSeconds = 0;
+    let lastTickVideoId = null;
+    let actedOnVideoId = null; // last video the toggle has already liked/skipped
+
+    function currentWatchVideoId() {
+        if (location.pathname !== '/watch') return null;
+        return new URLSearchParams(location.search).get('v');
+    }
+
+    function isSubscribedHere() {
+        // Modern YouTube: the renderer carries a `subscribed` attribute when
+        // the user is subscribed; otherwise the button's aria-pressed flips.
+        if (document.querySelector('ytd-subscribe-button-renderer[subscribed]')) return true;
+        const renderer = document.querySelector(SUBSCRIBE_RENDERERS);
+        if (!renderer) return false;
+        const btn = renderer.querySelector('button[aria-pressed]');
+        return btn?.getAttribute('aria-pressed') === 'true';
+    }
+
+    function findLikeButton() {
+        return document.querySelector(
+            'ytd-watch-flexy like-button-view-model button[aria-pressed], ' +
+            'ytd-watch-flexy ytd-toggle-button-renderer:has(yt-formatted-string) button[aria-pressed]'
+        );
+    }
+
+    function findDislikeButton() {
+        return document.querySelector(
+            'ytd-watch-flexy dislike-button-view-model button[aria-pressed]'
+        );
+    }
+
+    function tryAutoLike() {
+        const id = currentWatchVideoId();
+        if (!id || actedOnVideoId === id) return;
+        if (!isSubscribedHere()) return;
+
+        const like = findLikeButton();
+        if (!like) return;
+        if (like.getAttribute('aria-pressed') === 'true') {
+            actedOnVideoId = id; // already liked — done for this video
+            return;
+        }
+        const dislike = findDislikeButton();
+        if (dislike?.getAttribute('aria-pressed') === 'true') {
+            actedOnVideoId = id; // user disliked — respect that, don't override
+            return;
+        }
+        like.click();
+        actedOnVideoId = id;
+    }
+
+    function autoLikeTick() {
+        const id = currentWatchVideoId();
+        if (!id) return;
+        if (id !== lastTickVideoId) {
+            // SPA navigation to a new video — reset watched-time counter.
+            watchedSeconds = 0;
+            lastTickVideoId = id;
+        }
+        const video = document.querySelector(VIDEO_SELECTOR);
+        if (!video || video.paused) return;
+        watchedSeconds += 1;
+        if (watchedSeconds >= AUTOLIKE_THRESHOLD_S) tryAutoLike();
+    }
+
+    function startAutoLike() {
+        if (autoLikeInterval) return;
+        autoLikeInterval = setInterval(autoLikeTick, 1000);
+    }
+
+    function stopAutoLike() {
+        if (autoLikeInterval) {
+            clearInterval(autoLikeInterval);
+            autoLikeInterval = null;
+        }
+        watchedSeconds = 0;
+        lastTickVideoId = null;
+        actedOnVideoId = null;
+    }
+
+    function applyAutoLikeToggle(enabled) {
+        if (enabled) startAutoLike();
+        else stopAutoLike();
+    }
+
+    // ------------------------------------------------------------------------
     // CSS-toggle bookkeeping
     // ------------------------------------------------------------------------
 
@@ -299,6 +409,7 @@
     function applyAll(settings) {
         applyCssToggles(settings);
         applyJsFilters(settings);
+        applyAutoLikeToggle(settings.autoLike);
     }
 
     // ------------------------------------------------------------------------
