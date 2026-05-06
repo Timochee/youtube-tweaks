@@ -27,10 +27,13 @@ metadata text `Streamed X ago`, which means we need a small `MutationObserver`
 that scans new feed items as they're inserted. That observer is started only
 when the corresponding toggle is on.
 
-The extension assumes English YouTube. If your interface is in another
-language, edit `REPLAY_PREFIX` in `content.js` (e.g. `Diffusé en direct ` for
-French — though uBlock filter lists confirm English is the default match
-worldwide for this metadata format).
+The Shorts and Live filters are language-agnostic — the selectors target
+DOM attributes and `/shorts` URLs, not localized labels. The replay filter
+is the exception: it matches the metadata prefix `Streamed ` (English).
+If your interface is in another language, edit `REPLAY_PREFIX` in
+`content.js` (e.g. `Diffusé en direct ` for French — though uBlock filter
+lists confirm English is the default match worldwide for this metadata
+format).
 
 ## Installing the unpacked extension
 

@@ -20,8 +20,11 @@
 //
 // Replays cannot be selected via CSS because identification is based on the
 // metadata text "Streamed " (no dedicated DOM attribute exists). For that
-// case only, a MutationObserver scans new feed items and adds a marker
-// class. The observer is started/stopped based on the toggle.
+// case only, a MutationObserver collects items from added subtrees and from
+// characterData targets (metadata text fills in lazily after insertion),
+// coalesces them via requestAnimationFrame, and adds a marker class to the
+// ones that match. A full sweep runs at toggle-on and on SPA navigation.
+// The observer is started/stopped based on the toggle.
 // ============================================================================
 
 (function () {
@@ -52,17 +55,17 @@
         html.ytc-hide-shorts yt-lockup-view-model:has(a[href*="/shorts/"]),
         html.ytc-hide-shorts ytd-rich-item-renderer:has(a[href*="/shorts/"]),
 
-        /* Shorts in search results (badged "Shorts") */
-        html.ytc-hide-shorts ytd-video-renderer:has(badge-shape[aria-label="Shorts"]),
+        /* Shorts in search results: video items linking to /shorts/ */
+        html.ytc-hide-shorts ytd-video-renderer:has(a[href*="/shorts/"]),
 
         /* Whole Shorts shelves on home / subscriptions */
         html.ytc-hide-shorts ytd-rich-section-renderer:has(ytd-rich-shelf-renderer[is-shorts]),
         html.ytc-hide-shorts ytd-reel-shelf-renderer,
         html.ytc-hide-shorts grid-shelf-view-model:has(.shortsLockupViewModelHost),
 
-        /* Sidebar "Shorts" entry (collapsed and expanded guides) */
-        html.ytc-hide-shorts ytd-guide-entry-renderer:has(a[title="Shorts"]),
-        html.ytc-hide-shorts ytd-mini-guide-entry-renderer[aria-label="Shorts"] {
+        /* Sidebar "Shorts" entry, matched via the /shorts URL (language-agnostic) */
+        html.ytc-hide-shorts ytd-guide-entry-renderer:has(a[href="/shorts"]),
+        html.ytc-hide-shorts ytd-mini-guide-entry-renderer:has(a[href="/shorts"]) {
             display: none !important;
         }
 
@@ -90,7 +93,7 @@
         const style = document.createElement('style');
         style.id = STYLE_ID;
         style.textContent = STYLES;
-        (document.head || document.documentElement).appendChild(style);
+        document.documentElement.appendChild(style);
     }
 
     // ------------------------------------------------------------------------
@@ -102,11 +105,11 @@
     const META_SELECTOR =
         '.inline-metadata-item.ytd-video-meta-block, ' +
         'yt-content-metadata-view-model span';
-    const REPLAY_PREFIX = 'Streamed '; // English YouTube
+    const REPLAY_PREFIX = 'Streamed '; // English YouTube only — see CLAUDE.md
 
-    let replaysEnabled = false;
     let observer = null;
     let scheduled = false;
+    const pendingItems = new Set();
 
     function isReplayItem(item) {
         const spans = item.querySelectorAll(META_SELECTOR);
@@ -117,38 +120,73 @@
         return false;
     }
 
-    function processReplays() {
-        if (!replaysEnabled) return;
-        const browse = document.querySelector(SUBS_PAGE_SELECTOR);
-        if (!browse || browse.hasAttribute('hidden')) return;
-
-        const items = browse.querySelectorAll(ITEM_SELECTOR);
-        for (const item of items) {
-            if (item.classList.contains(REPLAY_HIDDEN_CLASS)) continue;
-            if (isReplayItem(item)) {
-                item.classList.add(REPLAY_HIDDEN_CLASS);
+    function collectFromMutations(mutations) {
+        for (const m of mutations) {
+            if (m.type === 'characterData') {
+                const parent = m.target.parentElement;
+                const item = parent && parent.closest(ITEM_SELECTOR);
+                if (item) pendingItems.add(item);
+                continue;
+            }
+            for (const node of m.addedNodes) {
+                if (node.nodeType !== Node.ELEMENT_NODE) continue;
+                if (node.matches(ITEM_SELECTOR)) {
+                    pendingItems.add(node);
+                } else {
+                    node.querySelectorAll(ITEM_SELECTOR)
+                        .forEach(item => pendingItems.add(item));
+                }
             }
         }
     }
 
-    function scheduleReplayPass() {
+    function flushReplayItems() {
+        if (!observer) {
+            pendingItems.clear();
+            return;
+        }
+        const browse = document.querySelector(SUBS_PAGE_SELECTOR);
+        if (!browse || browse.hasAttribute('hidden')) {
+            pendingItems.clear();
+            return;
+        }
+        for (const item of pendingItems) {
+            if (!browse.contains(item)) continue;
+            if (item.classList.contains(REPLAY_HIDDEN_CLASS)) continue;
+            if (isReplayItem(item)) item.classList.add(REPLAY_HIDDEN_CLASS);
+        }
+        pendingItems.clear();
+    }
+
+    function scheduleFlush() {
         if (scheduled) return;
         scheduled = true;
         requestAnimationFrame(() => {
             scheduled = false;
-            processReplays();
+            flushReplayItems();
         });
+    }
+
+    function scanAllReplays() {
+        if (!observer) return;
+        const browse = document.querySelector(SUBS_PAGE_SELECTOR);
+        if (!browse) return;
+        browse.querySelectorAll(ITEM_SELECTOR)
+            .forEach(item => pendingItems.add(item));
+        scheduleFlush();
     }
 
     function startReplayObserver() {
         if (observer) return;
-        const root = document.documentElement || document.body;
-        if (!root) return;
-        observer = new MutationObserver(scheduleReplayPass);
-        observer.observe(root, {
+        observer = new MutationObserver(mutations => {
+            const before = pendingItems.size;
+            collectFromMutations(mutations);
+            if (pendingItems.size !== before) scheduleFlush();
+        });
+        observer.observe(document.documentElement, {
             childList: true,
             subtree: true,
-            characterData: true, // metadata text fills in lazily after node insertion
+            characterData: true,
         });
     }
 
@@ -157,16 +195,15 @@
             observer.disconnect();
             observer = null;
         }
-        // Restore previously-hidden replay items so the page reflects the new state.
+        pendingItems.clear();
         document.querySelectorAll('.' + REPLAY_HIDDEN_CLASS)
             .forEach(el => el.classList.remove(REPLAY_HIDDEN_CLASS));
     }
 
     function applyReplayToggle(enabled) {
-        replaysEnabled = enabled;
         if (enabled) {
             startReplayObserver();
-            scheduleReplayPass();
+            scanAllReplays();
         } else {
             stopReplayObserver();
         }
@@ -178,13 +215,13 @@
 
     function applyCssToggles(settings) {
         const root = document.documentElement;
-        root.classList.toggle('ytc-hide-shorts', !!settings.hideShorts);
-        root.classList.toggle('ytc-hide-live', !!settings.hideLive);
+        root.classList.toggle('ytc-hide-shorts', settings.hideShorts);
+        root.classList.toggle('ytc-hide-live', settings.hideLive);
     }
 
     function applyAll(settings) {
         applyCssToggles(settings);
-        applyReplayToggle(!!settings.hideReplays);
+        applyReplayToggle(settings.hideReplays);
     }
 
     // ------------------------------------------------------------------------
@@ -205,8 +242,8 @@
         loadAndApply();
     });
 
-    // Re-run the replay pass on every YouTube SPA navigation.
-    window.addEventListener('yt-navigate-finish', scheduleReplayPass);
+    // Re-run the replay scan on every YouTube SPA navigation.
+    window.addEventListener('yt-navigate-finish', scanAllReplays);
 
     // ------------------------------------------------------------------------
     // Boot

@@ -19,7 +19,7 @@ async function init() {
 
     inputs.forEach(input => {
         const key = input.dataset.setting;
-        input.checked = !!settings[key];
+        input.checked = settings[key];
 
         input.addEventListener('change', () => {
             chrome.storage.sync.set({ [key]: input.checked });
