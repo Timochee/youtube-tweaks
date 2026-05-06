@@ -1,6 +1,6 @@
 # YouTube Cleaner
 
-A tiny Chrome extension to declutter YouTube. Three independent toggles, no
+A tiny Chrome extension to declutter YouTube. Four independent toggles, no
 account, no telemetry, no settings beyond the popup.
 
 ## What it hides
@@ -10,6 +10,7 @@ account, no telemetry, no settings beyond the popup.
 | **Shorts** | All YouTube pages (feed items, shelves, sidebar entries, search results) |
 | **Live streams** | Subscriptions and Home feeds (currently-live items only) |
 | **Live replays** | Subscriptions feed (videos labelled *"Streamed X ago"*) |
+| **"Most relevant" shelf** | Subscriptions feed (the algorithmic shelf at the top) |
 
 Each filter is off by default — toggle the ones you want from the extension
 popup. Settings sync across Chrome installs via `chrome.storage.sync`.
@@ -21,19 +22,23 @@ that targets YouTube's component classes (`overlay-style="SHORTS"`, the new
 `badge-shape-wiz--thumbnail-live` for live, etc.). Toggling a filter just
 adds or removes a class on `<html>` — no DOM walking, no per-item JavaScript.
 
-Past live replays are different: YouTube exposes no DOM attribute that
-distinguishes them from regular videos. The only available signal is the
-metadata text `Streamed X ago`, which means we need a small `MutationObserver`
-that scans new feed items as they're inserted. That observer is started only
-when the corresponding toggle is on.
+Past live replays and the "Most relevant" shelf are different: YouTube
+exposes no DOM attribute that distinguishes them from neighbouring items.
+The only available signals are the metadata text `Streamed X ago` for
+replays, and the section header text `Most relevant` for the shelf. A
+single `MutationObserver` scans new feed items / sections as they're
+inserted and adds a marker class to matches. The observer is started only
+while at least one of those two toggles is on.
 
-The Shorts and Live filters are language-agnostic — the selectors target
-DOM attributes and `/shorts` URLs, not localized labels. The replay filter
-is the exception: it matches the metadata prefix `Streamed ` (English).
-If your interface is in another language, edit `REPLAY_PREFIX` in
-`content.js` (e.g. `Diffusé en direct ` for French — though uBlock filter
-lists confirm English is the default match worldwide for this metadata
-format).
+The Shorts and Live filters mostly target DOM attributes (`overlay-style`,
+`badge-shape-wiz--thumbnail-live`, etc.) and `/shorts` URLs, with the
+English label attributes (`title="Shorts"`, `aria-label="Shorts"`) kept as
+extra fallbacks so the filters still work on the renderer variants where
+URL-based matching falls short. The replay and "Most relevant" filters
+are English-only: they match the metadata prefix `Streamed ` and the
+section title `Most relevant` respectively. If your interface is in
+another language, edit `REPLAY_PREFIX` and `RELEVANT_LABELS` in
+`content.js` (e.g. `Diffusé en direct ` for French replays).
 
 ## Installing the unpacked extension
 

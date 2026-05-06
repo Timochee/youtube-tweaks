@@ -11,6 +11,7 @@ const DEFAULTS = {
     hideShorts: false,
     hideLive: false,
     hideReplays: false,
+    hideRelevant: false,
 };
 
 async function init() {
