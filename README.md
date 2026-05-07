@@ -33,9 +33,12 @@ toggled off. Adding a feature is one new file plus one row in the popup.
 For Shorts and live streams (`content/hide-shorts.js`,
 `content/hide-live-streams.js`), each script injects its own CSS
 stylesheet that targets YouTube's component classes
-(`overlay-style="SHORTS"`, the new `badge-shape-wiz--thumbnail-live` for
-live, etc.). Toggling a filter just adds or removes a class on `<html>`
-— no DOM walking, no per-item JS.
+(`overlay-style="SHORTS"` for Shorts; for live, the legacy
+`badge-shape-wiz--thumbnail-live` plus the current camelCase
+`ytBadgeShapeThumbnailLive`). Wrappers vary too — both
+`ytd-rich-item-renderer` and the newer `yt-lockup-view-model` are
+matched. Toggling a filter just adds or removes a class on `<html>` — no
+DOM walking, no per-item JS.
 
 Past live replays (`content/hide-live-replays.js`) and the "Most relevant"
 shelf (`content/hide-most-relevant-shelf.js`) are different: YouTube
