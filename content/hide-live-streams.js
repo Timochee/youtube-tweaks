@@ -12,13 +12,26 @@
     const STYLE_ID = 'ytc-styles-live';
     const HTML_CLASS = 'ytc-hide-live';
 
-    // Two badge mechanisms coexist: the legacy [overlay-style="LIVE"] and
-    // the newer .badge-shape-wiz--thumbnail-live class. We catch both.
+    // Three badge mechanisms have shipped in parallel:
+    //   - Legacy: [overlay-style="LIVE"] on ytd-thumbnail-overlay-time-status-renderer
+    //   - Wiz kebab: .badge-shape-wiz--thumbnail-live
+    //   - Wiz camelCase (current 2026): .ytBadgeShapeThumbnailLive
+    //     (sits inside <yt-thumbnail-badge-view-model> with text "LIVE")
+    // Newer feed items wrap content in <yt-lockup-view-model> instead of
+    // ytd-rich-item-renderer, so we match both wrappers.
     const STYLES = `
         html.${HTML_CLASS} ytd-browse[page-subtype="subscriptions"] ytd-rich-item-renderer:has([overlay-style="LIVE"]),
         html.${HTML_CLASS} ytd-browse[page-subtype="subscriptions"] ytd-rich-item-renderer:has(.badge-shape-wiz--thumbnail-live),
+        html.${HTML_CLASS} ytd-browse[page-subtype="subscriptions"] ytd-rich-item-renderer:has(.ytBadgeShapeThumbnailLive),
+        html.${HTML_CLASS} ytd-browse[page-subtype="subscriptions"] yt-lockup-view-model:has([overlay-style="LIVE"]),
+        html.${HTML_CLASS} ytd-browse[page-subtype="subscriptions"] yt-lockup-view-model:has(.badge-shape-wiz--thumbnail-live),
+        html.${HTML_CLASS} ytd-browse[page-subtype="subscriptions"] yt-lockup-view-model:has(.ytBadgeShapeThumbnailLive),
         html.${HTML_CLASS} ytd-browse[page-subtype="home"] ytd-rich-item-renderer:has([overlay-style="LIVE"]),
-        html.${HTML_CLASS} ytd-browse[page-subtype="home"] ytd-rich-item-renderer:has(.badge-shape-wiz--thumbnail-live) {
+        html.${HTML_CLASS} ytd-browse[page-subtype="home"] ytd-rich-item-renderer:has(.badge-shape-wiz--thumbnail-live),
+        html.${HTML_CLASS} ytd-browse[page-subtype="home"] ytd-rich-item-renderer:has(.ytBadgeShapeThumbnailLive),
+        html.${HTML_CLASS} ytd-browse[page-subtype="home"] yt-lockup-view-model:has([overlay-style="LIVE"]),
+        html.${HTML_CLASS} ytd-browse[page-subtype="home"] yt-lockup-view-model:has(.badge-shape-wiz--thumbnail-live),
+        html.${HTML_CLASS} ytd-browse[page-subtype="home"] yt-lockup-view-model:has(.ytBadgeShapeThumbnailLive) {
             display: none !important;
         }
     `;
