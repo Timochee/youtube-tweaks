@@ -39,7 +39,13 @@
         html.${HTML_CLASS} ytd-guide-entry-renderer:has(a[title="Shorts"]),
         html.${HTML_CLASS} ytd-guide-entry-renderer:has(a[href*="/shorts"]),
         html.${HTML_CLASS} ytd-mini-guide-entry-renderer[aria-label="Shorts"],
-        html.${HTML_CLASS} ytd-mini-guide-entry-renderer:has(a[href*="/shorts"]) {
+        html.${HTML_CLASS} ytd-mini-guide-entry-renderer:has(a[href*="/shorts"]),
+
+        /* Channel-page "Shorts" tab — yt-tab-shape carries the title in a
+           tab-title attribute (no <a> child to match by URL). The legacy
+           tp-yt-paper-tab variant did expose an aria-label; both kept. */
+        html.${HTML_CLASS} yt-tab-shape[tab-title="Shorts"],
+        html.${HTML_CLASS} tp-yt-paper-tab[aria-label="Shorts"] {
             display: none !important;
         }
     `;
