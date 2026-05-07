@@ -1,7 +1,7 @@
 # YouTube Tweaks
 
-A tiny Chrome extension that tweaks YouTube to your taste. Six
-independent toggles — four cleanup filters and two actions — no account,
+A tiny Chrome extension that tweaks YouTube to your taste. Five
+independent toggles — four cleanup filters and one action — no account,
 no telemetry, no settings beyond the popup.
 
 ## What it hides
@@ -18,7 +18,6 @@ no telemetry, no settings beyond the popup.
 | Action | Where it applies |
 |---|---|
 | **Auto-like** | `/watch` pages, only on channels you're subscribed to, after 2 seconds of actual play time. Skips videos you've already liked or disliked. |
-| **Disable autoplay** | `/watch` pages. On each page load (and SPA navigation between videos), if the player's autoplay toggle is on, click it once to turn it off. |
 
 Each filter is off by default — toggle the ones you want from the extension
 popup. Settings sync across Chrome installs via `chrome.storage.sync`.
@@ -46,18 +45,14 @@ text `Most relevant` for the shelf. Each script owns its own
 `MutationObserver` (started only while its toggle is on) that scans
 newly-inserted items/sections and adds a marker class to matches.
 
-Auto-like (`content/auto-like.js`) and disable-autoplay
-(`content/disable-autoplay.js`) are the two features that *act* rather
-than hide. Auto-like runs a 1-Hz interval on `/watch` pages, accumulates
-only seconds where the `<video>` element is actually playing (so seeks
-and pauses don't count), and at the `AUTOLIKE_THRESHOLD_S` mark (2
-seconds by default) reads the Subscribe button state and the Like/Dislike
-button states from the DOM. If the channel is subscribed and the user
-hasn't already liked or disliked, it clicks Like exactly once per video.
-Disable-autoplay polls every 250 ms (up to 5 s deadline) for the player's
-autoplay toggle to mount, then clicks it once if currently on. The poll
-re-arms on every SPA navigation to a new video. No API call — every
-signal comes from on-page DOM.
+Auto-like (`content/auto-like.js`) is the one feature that *acts* rather
+than hides. It runs a 1-Hz interval on `/watch` pages, accumulates only
+seconds where the `<video>` element is actually playing (so seeks and
+pauses don't count), and at the `AUTOLIKE_THRESHOLD_S` mark (2 seconds by
+default) reads the Subscribe button state and the Like/Dislike button
+states from the DOM. If the channel is subscribed and the user hasn't
+already liked or disliked, it clicks Like exactly once per video. No API
+call — every signal comes from on-page DOM.
 
 The Shorts and Live filters mostly target DOM attributes (`overlay-style`,
 `badge-shape-wiz--thumbnail-live`, etc.) and `/shorts` URLs, with the
@@ -91,8 +86,7 @@ youtube-cleaner/
 │   ├── hide-live-streams.js          CSS-only — hides live streams (Subs/Home)
 │   ├── hide-live-replays.js          MutationObserver — hides "Streamed X ago" items
 │   ├── hide-most-relevant-shelf.js   MutationObserver — hides the "Most relevant" shelf
-│   ├── auto-like.js                  Interval — auto-likes subscribed-channel videos
-│   └── disable-autoplay.js           Polled-click — turns off the player's autoplay toggle
+│   └── auto-like.js                  Interval — auto-likes subscribed-channel videos
 ├── popup.html           Toggle UI; toggles auto-discovered via data-setting
 ├── popup.css            Popup styling (light/dark via prefers-color-scheme)
 ├── popup.js             Reads/writes settings to chrome.storage.sync
@@ -122,9 +116,6 @@ corresponding `content/<feature>.js`:
 - **Auto-like** (`content/auto-like.js`): if no like fires, inspect the
   Like / Dislike / Subscribe buttons on a `/watch` page and update the
   selectors in `findLikeButton`, `findDislikeButton`, `isSubscribedHere`.
-- **Disable autoplay** (`content/disable-autoplay.js`): if autoplay is
-  not turned off, inspect the player's autoplay toggle and update
-  `TOGGLE_STATE_SELECTOR` to match the new aria-checked-bearing element.
 
 The selectors in this extension were cross-checked against an actively-
 maintained uBlock filter list as of early 2026, but the moment YouTube

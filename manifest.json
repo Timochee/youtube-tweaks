@@ -21,8 +21,7 @@
         "content/hide-live-streams.js",
         "content/hide-live-replays.js",
         "content/hide-most-relevant-shelf.js",
-        "content/auto-like.js",
-        "content/disable-autoplay.js"
+        "content/auto-like.js"
       ],
       "run_at": "document_start",
       "all_frames": false
