@@ -1,5 +1,5 @@
 // ============================================================================
-// Hide Live streams — CSS-only filter
+// Hide Live streams: CSS-only filter
 // ============================================================================
 // Toggling on adds the `ytc-hide-live` class to <html>. CSS rules below
 // hide currently-live items on the Subscriptions and Home feeds only.

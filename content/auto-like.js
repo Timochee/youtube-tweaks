@@ -1,5 +1,5 @@
 // ============================================================================
-// Auto-like — action filter (Watch page only, subscribed channels only)
+// Auto-like: action filter (Watch page only, subscribed channels only)
 // ============================================================================
 // The only feature that *acts* on the user's account rather than hiding DOM.
 // While the toggle is on, a 1 Hz interval increments a per-video
@@ -64,12 +64,12 @@
         const like = findLikeButton();
         if (!like) return;
         if (like.getAttribute('aria-pressed') === 'true') {
-            actedOnVideoId = id; // already liked — done for this video
+            actedOnVideoId = id; // already liked, done for this video
             return;
         }
         const dislike = findDislikeButton();
         if (dislike?.getAttribute('aria-pressed') === 'true') {
-            actedOnVideoId = id; // user disliked — respect that, don't override
+            actedOnVideoId = id; // user disliked: respect that, don't override
             return;
         }
         like.click();
@@ -80,7 +80,7 @@
         const id = currentWatchVideoId();
         if (!id) return;
         if (id !== lastTickVideoId) {
-            // SPA navigation to a new video — reset watched-time counter.
+            // SPA navigation to a new video: reset watched-time counter.
             watchedSeconds = 0;
             lastTickVideoId = id;
         }

@@ -37,7 +37,7 @@ def make_icon(size: int) -> Image.Image:
     )
 
     # Diagonal slash, bottom-left to top-right.
-    # Skip the slash at the smallest size — clutter at 16px hurts more than it helps.
+    # Skip the slash at the smallest size: clutter at 16px hurts more than it helps.
     if size >= 32:
         slash_w = max(2, size // 10)
         pad = size // 7

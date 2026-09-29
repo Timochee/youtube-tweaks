@@ -1,9 +1,9 @@
 // ============================================================================
-// Hide Live Replays — JS-marked filter (Subscriptions only)
+// Hide Live Replays: JS-marked filter (Subscriptions only)
 // ============================================================================
 // YouTube exposes no DOM attribute to distinguish replays from regular
 // videos. The only signal is the metadata text starting with "Streamed "
-// (English only — edit REPLAY_PREFIX for other locales).
+// (English only; edit REPLAY_PREFIX for other locales).
 //
 // This file owns one MutationObserver (started only while the toggle is on)
 // that translates MutationRecords into a `pendingItems` Set. childList ->

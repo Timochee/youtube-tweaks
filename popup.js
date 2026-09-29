@@ -3,10 +3,10 @@
 // ============================================================================
 // Reads stored settings, reflects them on the toggles, and writes back any
 // change to chrome.storage.sync. Each content script reacts to its own
-// storage keys via chrome.storage.onChanged — no tab messaging needed.
+// storage keys via chrome.storage.onChanged, no tab messaging needed.
 //
 // The set of toggles is derived from popup.html's `data-setting` attributes,
-// so adding a feature is one HTML row + one new content script — no edit
+// so adding a feature is one HTML row + one new content script, no edit
 // here required.
 // ============================================================================
 

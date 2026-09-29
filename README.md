@@ -1,7 +1,7 @@
 # YouTube Tweaks
 
 A tiny Chrome extension that tweaks YouTube to your taste. Five
-independent toggles — four cleanup filters and one action — no account,
+independent toggles (four cleanup filters and one action), no account,
 no telemetry, no settings beyond the popup.
 
 <img src="docs/popup.png" alt="YouTube Tweaks popup with its five toggles" width="284">
@@ -21,13 +21,13 @@ no telemetry, no settings beyond the popup.
 |---|---|
 | **Auto-like** | `/watch` pages, only on channels you're subscribed to, after 2 seconds of actual play time. Skips videos you've already liked or disliked. |
 
-Each filter is off by default — toggle the ones you want from the extension
+Each filter is off by default; toggle the ones you want from the extension
 popup. Settings sync across Chrome installs via `chrome.storage.sync`.
 
 ## How it works
 
 Each toggle lives in its own content script under `content/`. They run
-independently — there's no shared module, no central state, no
+independently: there's no shared module, no central state, no
 coordination. Each script reads only its own keys from
 `chrome.storage.sync`, owns its own DOM side-effects, and cleans up when
 toggled off. Adding a feature is one new file plus one row in the popup.
@@ -37,9 +37,9 @@ For Shorts and live streams (`content/hide-shorts.js`,
 stylesheet that targets YouTube's component classes
 (`overlay-style="SHORTS"` for Shorts; for live, the legacy
 `badge-shape-wiz--thumbnail-live` plus the current camelCase
-`ytBadgeShapeThumbnailLive`). Wrappers vary too — both
+`ytBadgeShapeThumbnailLive`). Wrappers vary too: both
 `ytd-rich-item-renderer` and the newer `yt-lockup-view-model` are
-matched. Toggling a filter just adds or removes a class on `<html>` — no
+matched. Toggling a filter just adds or removes a class on `<html>`, no
 DOM walking, no per-item JS.
 
 Past live replays (`content/hide-live-replays.js`) and the "Most relevant"
@@ -57,7 +57,7 @@ pauses don't count), and at the `AUTOLIKE_THRESHOLD_S` mark (2 seconds by
 default) reads the Subscribe button state and the Like/Dislike button
 states from the DOM. If the channel is subscribed and the user hasn't
 already liked or disliked, it clicks Like exactly once per video. No API
-call — every signal comes from on-page DOM.
+call: every signal comes from on-page DOM.
 
 The Shorts and Live filters mostly target DOM attributes (`overlay-style`,
 `badge-shape-wiz--thumbnail-live`, etc.) and `/shorts` URLs, with the
@@ -94,7 +94,7 @@ and `RELEVANT_LABELS` in `content/hide-most-relevant-shelf.js` (e.g.
 4. Select the `youtube-tweaks` folder (the repository root).
 5. Pin the extension to the toolbar so the popup is one click away.
 
-The folder needs to stay where you put it — Chrome reads from the path you
+The folder needs to stay where you put it: Chrome reads from the path you
 loaded. If you move or delete the folder, the extension breaks.
 
 ## Project layout
@@ -103,11 +103,11 @@ loaded. If you move or delete the folder, the extension breaks.
 youtube-tweaks/
 ├── manifest.json        Manifest V3
 ├── content/                          One content script per toggle (loaded independently)
-│   ├── hide-shorts.js                CSS-only — hides Shorts everywhere
-│   ├── hide-live-streams.js          CSS-only — hides live streams (Subs/Home)
-│   ├── hide-live-replays.js          MutationObserver — hides "Streamed X ago" items
-│   ├── hide-most-relevant-shelf.js   MutationObserver — hides the "Most relevant" shelf
-│   └── auto-like.js                  Interval — auto-likes subscribed-channel videos
+│   ├── hide-shorts.js                CSS-only: hides Shorts everywhere
+│   ├── hide-live-streams.js          CSS-only: hides live streams (Subs/Home)
+│   ├── hide-live-replays.js          MutationObserver: hides "Streamed X ago" items
+│   ├── hide-most-relevant-shelf.js   MutationObserver: hides the "Most relevant" shelf
+│   └── auto-like.js                  Interval: auto-likes subscribed-channel videos
 ├── popup.html           Toggle UI; toggles auto-discovered via data-setting
 ├── popup.css            Popup styling (light/dark via prefers-color-scheme)
 ├── popup.js             Reads/writes settings to chrome.storage.sync

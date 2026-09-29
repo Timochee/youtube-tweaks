@@ -1,9 +1,9 @@
 // ============================================================================
-// Hide "Most relevant" shelf — JS-marked filter (Subscriptions only)
+// Hide "Most relevant" shelf: JS-marked filter (Subscriptions only)
 // ============================================================================
 // YouTube's algorithmic shelf at the top of Subscriptions has no DOM
 // attribute marking it. The only signal is the section header text
-// "Most relevant" (English only — edit RELEVANT_LABELS for other locales).
+// "Most relevant" (English only; edit RELEVANT_LABELS for other locales).
 //
 // Deliberate near-copy of hide-live-replays.js, watching
 // ytd-rich-section-renderer instead of individual items: each feature stays
