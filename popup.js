@@ -22,9 +22,14 @@ async function init() {
         input.checked = settings[key];
 
         input.addEventListener('change', () => {
-            chrome.storage.sync.set({ [key]: input.checked });
+            const requested = input.checked;
+            chrome.storage.sync.set({ [key]: requested }).catch(err => {
+                // Keep the toggle truthful: revert to the still-stored value.
+                if (input.checked === requested) input.checked = !requested;
+                console.error(`[YouTube Tweaks] failed to save "${key}"`, err);
+            });
         });
     });
 }
 
-init();
+init().catch(err => console.error('[YouTube Tweaks] failed to load settings', err));

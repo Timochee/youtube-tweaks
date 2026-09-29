@@ -144,7 +144,9 @@
     }
 
     function loadAndApply() {
-        chrome.storage.sync.get(DEFAULTS).then(apply).catch(() => {});
+        chrome.storage.sync.get(DEFAULTS)
+            .then(apply)
+            .catch(err => console.warn('[YouTube Tweaks] hide-live-replays: settings not applied', err));
     }
 
     chrome.storage.onChanged.addListener((changes, area) => {

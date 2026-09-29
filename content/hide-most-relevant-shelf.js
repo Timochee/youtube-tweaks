@@ -139,7 +139,9 @@
     }
 
     function loadAndApply() {
-        chrome.storage.sync.get(DEFAULTS).then(apply).catch(() => {});
+        chrome.storage.sync.get(DEFAULTS)
+            .then(apply)
+            .catch(err => console.warn('[YouTube Tweaks] hide-most-relevant-shelf: settings not applied', err));
     }
 
     chrome.storage.onChanged.addListener((changes, area) => {
