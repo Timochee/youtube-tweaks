@@ -4,6 +4,8 @@ A tiny Chrome extension that tweaks YouTube to your taste. Five
 independent toggles — four cleanup filters and one action — no account,
 no telemetry, no settings beyond the popup.
 
+<img src="docs/popup.png" alt="YouTube Tweaks popup with its five toggles" width="284">
+
 ## What it hides
 
 | Filter | Where it applies |
@@ -68,12 +70,28 @@ another language, edit `REPLAY_PREFIX` in `content/hide-live-replays.js`
 and `RELEVANT_LABELS` in `content/hide-most-relevant-shelf.js` (e.g.
 `Diffusé en direct ` for French replays).
 
+## Design decisions
+
+- **Duplication over coupling.** Each content script repeats the same small
+  boot sequence (read settings, listen for changes, inject styles), and the
+  two text-based filters share near-identical observer code. A shared module
+  would remove ~150 lines but would couple every feature to it, and content
+  scripts have no module system without a bundler. Keeping each file
+  self-contained means a feature can be added, broken by a YouTube redesign,
+  or deleted without touching any other file.
+- **CSS first, JS only when needed.** Filters that YouTube marks in the DOM
+  are pure CSS (`:has()` selectors gated on a class on `<html>`), so they
+  apply before first paint and cost nothing per item. JavaScript is used
+  only where the signal is text (replays, "Most relevant").
+- **No build step, no dependencies.** The folder is loaded as-is by Chrome.
+  Nothing to install, nothing to keep up to date.
+
 ## Installing the unpacked extension
 
 1. Open `chrome://extensions` (or `arc://extensions` for Arc).
 2. Toggle **Developer mode** on (top right).
 3. Click **Load unpacked**.
-4. Select the `youtube-cleaner` folder.
+4. Select the `youtube-tweaks` folder (the repository root).
 5. Pin the extension to the toolbar so the popup is one click away.
 
 The folder needs to stay where you put it — Chrome reads from the path you
@@ -82,7 +100,7 @@ loaded. If you move or delete the folder, the extension breaks.
 ## Project layout
 
 ```
-youtube-cleaner/
+youtube-tweaks/
 ├── manifest.json        Manifest V3
 ├── content/                          One content script per toggle (loaded independently)
 │   ├── hide-shorts.js                CSS-only — hides Shorts everywhere
@@ -93,6 +111,8 @@ youtube-cleaner/
 ├── popup.html           Toggle UI; toggles auto-discovered via data-setting
 ├── popup.css            Popup styling (light/dark via prefers-color-scheme)
 ├── popup.js             Reads/writes settings to chrome.storage.sync
+├── docs/
+│   └── popup.png        README screenshot
 ├── icons/
 │   ├── icon16.png
 │   ├── icon48.png

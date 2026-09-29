@@ -5,9 +5,10 @@
 // attribute marking it. The only signal is the section header text
 // "Most relevant" (English only — edit RELEVANT_LABELS for other locales).
 //
-// Mirror of replays.js but watching ytd-rich-section-renderer instead of
-// individual items. Self-contained MutationObserver, started only while
-// the toggle is on. Toggling off removes the marker class.
+// Deliberate near-copy of hide-live-replays.js, watching
+// ytd-rich-section-renderer instead of individual items: each feature stays
+// self-contained (see "Design decisions" in README.md). Own MutationObserver,
+// started only while the toggle is on. Toggling off removes the marker class.
 // ============================================================================
 
 (function () {
