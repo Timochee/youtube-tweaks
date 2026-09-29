@@ -34,7 +34,9 @@
     function isSubscribedHere() {
         // Modern YouTube: the renderer carries a `subscribed` attribute when
         // the user is subscribed; otherwise the button's aria-pressed flips.
-        if (document.querySelector('ytd-subscribe-button-renderer[subscribed]')) return true;
+        // Scoped to ytd-watch-flexy: YouTube keeps previously visited pages
+        // (e.g. a subscribed channel's ytd-browse) hidden in the DOM.
+        if (document.querySelector('ytd-watch-flexy ytd-subscribe-button-renderer[subscribed]')) return true;
         const renderer = document.querySelector(SUBSCRIBE_RENDERERS);
         if (!renderer) return false;
         const btn = renderer.querySelector('button[aria-pressed]');
